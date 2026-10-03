@@ -97,8 +97,8 @@ Step 1 — Verify Docker is running
 
 Because this lab will use isolated systems rather than modifying the firewall configuration of the MacBook itself, first I open Docker Desktop.
 
-Then I open Terminal and I run: docker –version\
-\
+Then I open Terminal and I run: docker –version
+
 and: docker ps
 
 The output confirms:
@@ -109,11 +109,8 @@ The containers from the previous Firewall-Protected DMZ Lab are still running.
 My Wazuh containers are also running.
 
 I will not modify or reuse the previous DMZ containers. This new lab will get its own isolated Docker network and uniquely named containers, so the previous lab remains intact. (Image 1)\
-\
-\
-\
+
 Step 2 — Create the New Firewall Lab Network
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 In the terminal, I run:\
 \
@@ -153,10 +150,9 @@ Subnet: 172.30.0.0/24 \
 Gateway: 172.30.0.1 \
 Driver: bridge \
 IPv4 enabled\
-No lab containers attached yet ("Containers": {}) — exactly what I expect. (Image 2)\
-\
+No lab containers attached yet ("Containers": {}) — exactly what I expect. (Image 2)
 
-## Step 3 — Create the Firewall Container
+Step 3 — Create the Firewall Container
 
 I create the Linux system that will act as our firewall.
 
@@ -174,7 +170,7 @@ docker run -dit \\
 
 alpine sh
 
-### Then I verify it: docker ps --filter name=port-firewall\
+Then I verify it: docker ps --filter name=port-firewall
 \
 What this does
 
@@ -199,11 +195,8 @@ IP: 172.30.0.10
 Network: port-firewall-net
 
 This is now the first host attached to the network I created in Step 2. (Image 3)\
-\
-\
-\
+
 Step 4 — Install the Firewall and Testing Tools
-----------------------------------------------------------------------------------
 
 The basic Alpine image does not include iptables by default. I install it inside the firewall container.
 
@@ -211,7 +204,7 @@ I run: docker exec port-firewall apk add --no-cache iptables iproute2 curl
 
 Then I verify iptables: docker exec port-firewall iptables --version
 
-### Why iptables?
+Why iptables?
 
 iptables is the tool I use to create rules such as:
 
@@ -241,10 +234,8 @@ iptables v1.8.13 (nf_tables)
 
 That means the Linux firewall container is ready to create firewall rules.\
 (Image 4)\
-\
-\
+
 Step 5 — Check the Firewall Before Adding Rules
----------------------------------------------------------------------------
 
 I am going to inspect the firewall's current/default state. This gives me a baseline to compare against later.
 
@@ -269,10 +260,8 @@ There are also no individual firewall rules yet underneath those chains. This 
 
 ACCEPT does not automatically mean a port is open. A firewall may permit port 22, for example, but if no SSH service is listening on port 22, the connection still won't succeed. I'll deliberately create listening services so I can distinguish “firewall blocked it” from “nothing was listening.” (Image 5)
 
-\
-\
+
 Step 6 — Create the Test Server
--------------------------------
 
 Now I create a second container that will eventually provide the services/ports that the firewall policy will test.
 
@@ -312,10 +301,8 @@ port-firewall-net (172.30.0.0/24)
 
 172.30.0.20 (Image 6)
 
-\
-\
 Step 7 — Install Network Testing Tools on the Test Server
----------------------------------------------------------
+
 
 I need tools inside port-test-server so it can provide/listen on ports and later help to verify firewall behavior.
 
@@ -352,13 +339,8 @@ That doesn't mean I am installing real SSH, Telnet, SMB, or RDP servers. Instead
 The installation finished successfully with: OK: 25.1 MiB in 50 packages
 
 And the second output confirms OpenBSD Netcat 1.234-1 is installed and working. The long text I see after nc -his simply Netcat's help menu—not an error. (Image 7 and 8)\
-\
-\
-\
-\
-\
+
 Step 8 — Create the Listening Test Ports
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Now I’ll make the test server listen on the selected TCP ports. This gives me known-open ports against which I can test the firewall.
 
@@ -372,9 +354,7 @@ nc -lk -p \$p \>/dev/null 2\>&1 &
 
 done
 
-'
-
-I’m intentionally leaving 53/DNS for a separate UDP/TCP test because DNS behaves differently from these TCP services.
+'I’m intentionally leaving 53/DNS for a separate UDP/TCP test because DNS behaves differently from these TCP services.
 
 Then I verify the listeners: docker exec port-test-server ss -lnt
 
@@ -395,11 +375,10 @@ The output confirms that all six TCP test ports are actively listening:
 0.0.0.0 means Netcat is listening on all IPv4 interfaces inside the test-server container. The 127.0.0.11:40437 entry is Docker's internal DNS-related service; it is not one of the test ports we created.
 
 This is an important baseline: I now know these ports really have listeners. Therefore, later when I deliberately block a port, I can attribute the failure to the firewall policy rather than to the absence of a listener.\
-(Image 9)\
-\
-\
+(Image 9)
+
 Step 9 — Create the Client Container
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 I now need a third machine that will generate the connection attempts.
 
@@ -456,11 +435,9 @@ port-test-server → Up
 port-firewall → Up
 
 Before I start testing ports, I need to correct an important topology issue: right now all three are on the same subnet, so traffic from port-client to port-test-server can travel directly and would not pass through port-firewall. (Image 10)\
-\
-\
-\
+
 Step 10 — Install Testing Tools on the Client
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 First, I prepare port-client for connectivity testing.
 
@@ -500,12 +477,8 @@ port-firewall 172.30.0.10 → applies firewall rules
 
 port-test-server 172.30.0.20 → provides test ports (Image 11 and 12)
 
-\
-\
-\
-\
 Step 11 — Create Two Separate Network Segments
-----------------------------------------------
+
 
 This is an important step. Right now, client and server share the same network, so they can communicate without passing through the firewall.
 
@@ -581,7 +554,7 @@ Bottom of Form
 
 Top of Form
 
-## Step 12 — Connect the Firewall to the Server Network
+Step 12 — Connect the Firewall to the Server Network
 
 The firewall needs two network interfaces. one facing the client and one facing the server.
 
@@ -633,10 +606,7 @@ The firewall is now connected to both network segments. (Image 14)
 
 Bottom of Form
 
-\
-\
 Step 13 — Move the Test Server to the Server-Side Network
----------------------------------------------------------
 
 Right now port-test-server is still attached to the original client-side network, so I need to move it behind the firewall.
 
@@ -694,12 +664,8 @@ port-test-server
 
 172.31.0.20 (Image 15)
 
-Top of Form
 
-\
-\
 Step 14 — Enable IP Forwarding on the Firewall
-----------------------------------------------
 
 The firewall has interfaces on both networks, but Linux must also be told that it is allowed to forward packets between those networks.
 
@@ -723,10 +689,9 @@ That means IP forwarding is already enabled inside port-firewall. I do not 
 
 In simple terms, the firewall is capable of receiving a packet on its client-side interface and forwarding it out through its server-side interface.\
 (Image 16)\
-\
-\
+
 Step 15 — Add Routes Through the Firewall
------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 Now I need to tell the client and server that traffic destined for the other subnet should go through port-firewall.
 
@@ -798,12 +763,9 @@ port-test-server
 
 default via 172.31.0.1
 
-172.31.0.0/24 (Image 17)\
-\
-\
-\
+172.31.0.0/24 (Image 17)
+
 Step 15A — Add the Routes with Privileged Exec
-----------------------------------------------
 
 I don’t need to delete or rebuild the containers. First I try running the route commands with temporary elevated privileges.
 
@@ -849,10 +811,10 @@ port-test-server:
 
 172.30.0.0/24 via 172.31.0.10 dev eth0
 
-So traffic between the two lab networks is now explicitly routed through port-firewall. (Image 18)\
+So traffic between the two lab networks is now explicitly routed through port-firewall. (Image 18)
 \
 
-## Step 16 — Test Baseline Connectivity Through the Firewall
+Step 16 — Test Baseline Connectivity Through the Firewall
 
 Before creating any ACCEPT/DROP rules, I prove that the client can reach the server through the firewall.
 
@@ -910,10 +872,8 @@ Connection to 172.31.0.20 22 port \[tcp/ssh\] succeeded!
 
 So TCP port 22 is reachable before I apply restrictive firewall rules. (Image 19)
 
-\
-\
 Step 17 — Verify the Traffic Reached the Firewall
--------------------------------------------------
+
 
 Before adding the rules, I inspect the firewall's FORWARD chain counters. This will provide evidence that traffic is actually passing through port-firewall.
 
@@ -939,8 +899,6 @@ So the port-firewall container's iptables FORWARD chain did not count the 
 
 That means I should not proceed with ACCEPT/DROP rules yet. I need to verify the actual packet path first. Docker networking can sometimes route traffic through the host's virtual networking in a way that differs from the simple topology diagram. (Image 20)
 
-### \
-\
 Step 17A — Verify the actual route
 
 I run this from the client:
@@ -985,14 +943,3 @@ So the routes themselves are correct.
 
 The strange part is that iptables showed 0 packets in the FORWARD chain despite successful communication. Rather than guessing, I will verify packet traversal directly. (Image 21)
 
-Top of Form
-
-Bottom of Form
-
-Top of Form
-
-Bottom of Form
-
-Bottom of Form
-
-Bottom of Form
